@@ -6,14 +6,17 @@
 /*   By: souaguen <souaguen@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/08 21:47:13 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/03/09 07:05:28 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/03/09 13:28:36 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include "libft/libft.h"
 #include <unistd.h>
 #include <stdio.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 #include <wait.h>
-#include "libft/libft.h"
+#include <sys/ioctl.h>
 
 char	**ft_super_split(char *str, char c)
 {
@@ -126,6 +129,30 @@ char	**ft_pipe_split(char *str, char c)
 	return (spl);
 }
 
+char	*set_exec(char *cmd)
+{
+	char	**path;
+	char	*abs_path;
+	char	*tmp;
+	int		i;
+
+	i = 0;
+	path = ft_pipe_split(getenv("PATH"), ':');
+	abs_path = ft_strdup(cmd);
+	while (path[i] != NULL)
+	{
+		if (access(abs_path, X_OK) == 0)
+			return (abs_path);
+		free(abs_path);
+		tmp = ft_strjoin(path[i], "/");
+		abs_path = ft_strjoin(tmp, cmd);
+		free(tmp);
+		i++;
+	}
+	free(abs_path);
+	return (cmd);
+}
+
 int	exec_cmd(char **argv, char **envp)
 {
 	pid_t	pid;
@@ -136,10 +163,10 @@ int	exec_cmd(char **argv, char **envp)
 		return (-1);
 	else if (pid == 0)
 	{
+		argv[0] = set_exec(argv[0]);
 		execve(argv[0], argv, envp);
 		perror("execve");
-		free(argv);
-		exit (EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 	else
 	{
@@ -161,6 +188,7 @@ int	run(t_list *cmds, char **envp)
 	pid_t	pid;
 	int		pipefd[2];
 	int		wstatus;
+	int		fd;
 
 	if (pipe(pipefd) == -1)
 	{
@@ -176,45 +204,72 @@ int	run(t_list *cmds, char **envp)
 	else if (pid == 0)
 	{
 		close(pipefd[0]);
+		fd = dup(1);
 		dup2(pipefd[1], 1);
 		exec_cmd((*cmds).content, envp);
+		dup2(fd, 1);	
 		close(pipefd[1]);
-		return (EXIT_SUCCESS);
+		close(fd);
+		exit(EXIT_SUCCESS);
 	}
 	else
 	{
 		close(pipefd[1]);
-		dup2(pipefd[0], 0);
 		if (cmds != NULL && (*cmds).next != NULL)
 		{
-			close(pipefd[0]);
+			fd = dup(0);
+			dup2(pipefd[0], 0);
 			run((*cmds).next, envp);
+			waitpid(-1, &wstatus, 0);
+			dup2(fd, 0);
+			close(fd);
 		}
 		else
-			read_file(pipefd[0], 1);
-		waitpid(-1, &wstatus, 0);
+			read_file(pipefd[0], 1);	
 		return (WEXITSTATUS(wstatus));
 	}
 }
 
-int	main(int argc, char **argv, char **envp)
+char	**ft_set_cmds(t_list **lst, char *cmd)
 {
 	char	**spl;
+	int		i;
+
+	i = -1;
+	spl = ft_pipe_split(cmd, '|');
+	while (spl[(++i)] != NULL)	
+		ft_lstadd_back(lst, ft_lstnew(ft_super_split(spl[i], ' ')));
+	return (spl);
+}
+
+int	main(int argc, char **argv, char **envp)
+{
+	char	**spl;	
+	char	*str;
 	t_list	*cmds;
 	int		i;
+	pid_t		pid;
+	char		buf;
+	int		fd;
 
 	i = 0;
 	cmds = NULL;
-	if (argc != 2)
-		return (1);
-	spl = ft_pipe_split(argv[1], '|');
-	while (spl[i] != NULL)
+	str = readline("Minishell $> ");	
+	while (ft_strncmp(str, "exit", 5))
 	{
-		ft_lstadd_back(&cmds, ft_lstnew(ft_super_split(spl[i], ' ')));
-		i++;
+		add_history(str);
+		if (str != NULL && str[0] != '\0')
+		{	
+			spl = ft_set_cmds(&cmds, str);
+			pid = run(cmds, envp);
+			ft_lstclear(&cmds, free);	
+			free(spl);
+		}
+		free(str);
+		rl_on_new_line();
+		str = readline("Minishell $> ");
 	}
-	run(cmds, envp);
-	ft_lstclear(&cmds, free);
-	free(spl);
-	return (0);
+	free(str);
+	rl_clear_history();
+	return (0);	
 }

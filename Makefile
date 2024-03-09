@@ -6,7 +6,7 @@
 #    By: souaguen <souaguen@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/03/08 21:52:24 by  souaguen         #+#    #+#              #
-#    Updated: 2024/03/09 06:47:25 by souaguen         ###   ########.fr        #
+#    Updated: 2024/03/09 09:46:54 by souaguen         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -18,7 +18,7 @@ OBJ=$(SRC:.c=.o)
 
 $(NAME): $(OBJ)
 	make -C libft all bonus
-	$(CC) $(OBJ) -o $(NAME) -L./libft -l:libft.a
+	$(CC) $(OBJ) -o $(NAME) -L./libft -l:libft.a -lreadline
 
 all: $(NAME)
 
