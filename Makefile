@@ -6,12 +6,12 @@
 #    By: souaguen <souaguen@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/03/08 21:52:24 by  souaguen         #+#    #+#              #
-#    Updated: 2024/03/09 09:46:54 by souaguen         ###   ########.fr        #
+#    Updated: 2024/03/11 05:09:26 by souaguen         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 CC=cc
-CFLAGS=-g #-Wall -Wextra -Werror
+CFLAGS=#-Wall -Wextra -Werror
 SRC=main.c
 NAME=minishell
 OBJ=$(SRC:.c=.o)
