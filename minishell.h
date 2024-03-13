@@ -1,34 +1,17 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.c                                             :+:      :+:    :+:   */
+/*   minishell.h                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: souaguen <souaguen@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/03/13 01:24:00 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/03/13 03:35:21 by souaguen         ###   ########.fr       */
+/*   Created: 2024/03/13 01:50:10 by  souaguen         #+#    #+#             */
+/*   Updated: 2024/03/13 01:51:34 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "libft.h"
-#include "minishell.h"
-#include <stdio.h>
+#ifndef MINISHELL_H
+# define MINISHELL_H
 
-int	main(int argc, char **argv)
-{
-	t_list	*lst;
-	t_list	*cursor;
-
-	lst = NULL;
-	if (argc != 2)
-		return (1);
-	lst = remove_quotes(argv[1]);
-	cursor = lst;
-	while (cursor != NULL)
-	{
-		printf("%s\n", (char *)(*cursor).content);
-		cursor = (*cursor).next;
-	}
-	ft_lstclear(&lst, &free);
-	return (0);
-}
+t_list	*remove_quotes(char *str);
+#endif

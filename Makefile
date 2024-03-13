@@ -6,19 +6,20 @@
 #    By: souaguen <souaguen@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/03/08 21:52:24 by  souaguen         #+#    #+#              #
-#    Updated: 2024/03/11 05:09:26 by souaguen         ###   ########.fr        #
+#    Updated: 2024/03/13 01:59:10 by souaguen         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 CC=cc
-CFLAGS=#-Wall -Wextra -Werror
-SRC=main.c
+CFLAGS=-g -I./libft -I./#-Wall -Wextra -Werror
+SRC=main.c \
+    src/ft_str_parsing.c
 NAME=minishell
 OBJ=$(SRC:.c=.o)
 
 $(NAME): $(OBJ)
 	make -C libft all bonus
-	$(CC) $(OBJ) -o $(NAME) -L./libft -l:libft.a -lreadline
+	$(CC) -g $(OBJ) -o $(NAME) -L./libft -l:libft.a -lreadline
 
 all: $(NAME)
 
