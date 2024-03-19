@@ -6,14 +6,17 @@
 #    By: souaguen <souaguen@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/03/08 21:52:24 by  souaguen         #+#    #+#              #
-#    Updated: 2024/03/13 01:59:10 by souaguen         ###   ########.fr        #
+#    Updated: 2024/03/19 02:27:13 by souaguen         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 CC=cc
-CFLAGS=-g -I./libft -I./#-Wall -Wextra -Werror
+CFLAGS=-I./libft -I./#-Wall -Wextra -Werror
 SRC=main.c \
-    src/ft_str_parsing.c
+    src/ft_str_parsing.c \
+    src/vars_parsing.c \
+    src/pipeline_utils.c
+
 NAME=minishell
 OBJ=$(SRC:.c=.o)
 

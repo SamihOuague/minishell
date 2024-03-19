@@ -6,195 +6,163 @@
 /*   By: souaguen <souaguen@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/13 01:24:00 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/03/18 20:44:11 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/03/19 04:02:53 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "libft.h"
 #include "minishell.h"
 #include <stdio.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
-char	*replace_content(char *str, char *l_str)
+
+char	*set_exec(char *cmd)
 {
+	char	**path;
+	char	*abs_path;
 	char	*tmp;
-	char	*res;
+	int		i;
 
-	tmp = str;
-	res = ft_strjoin(str, l_str);
-	free(tmp);
-	return (res);
-}
-
-int     count_vars(char *str)
-{
-        int     i;
-        int     c;
-
-        i = 0;
-        c = 0;
-        while (*(str + i) != '\0')
-        {
-                if (*(str + i) == '$')
-                        c++;
-                i++;
-        }
-        return (c);
-}
-
-char    *var_to_str(char *str)
-{
-        char    *tmp;
-        char    *new_str;
-        char    **vars;
-        char    **spl;
-        t_list  *n_str;
-        t_list  *cursor;
-        int             i;
-        int             j;
-        int             k;
-        long            n;
-
-        n_str = NULL;
-        if (ft_strchr(str, '$') == NULL)
-                return (str);
-        j = count_vars(str) + 1;
-        vars = malloc(sizeof(char *) * j);
-        vars[j - 1] = NULL;
-        i = 0;
-        j = 0;
-        new_str = NULL;
-        while (*(str + i) != '\0')
-        {
-                if (*(str + i) == '$')
-                {
-                        n = i + 1;
-                        k = 0;
-                        while (*(str + n) != '\0')
-                        {
-                                if (ft_strchr(" $", *(str + n)))
-                                        break ;
-                                n++;
-                                k++;
-                        }
-                        vars[j] = malloc(sizeof(char) * (k + 1));
-                        ft_memcpy(vars[j], (str + i + 1), k + 1);
-                        vars[j][k] = '\0';
-                        j++;
-                }
-                if (*(str + i) != '\0')
-                        i++;
-        }
-        j = 0;
-        while (vars[j] != NULL)
-        {
-                new_str = getenv(vars[j]);
-                free(vars[j]);
-                vars[j] = new_str;
-                j++;
-        }
-
-        i = 0;
-        new_str = str;
-        j = 0;
-        while (*(str + i) != '\0')
-        {
-                if (*(str + i) == '$')
-                {
-                        *(str + i) = '\0';
-                        ft_lstadd_back(&n_str, ft_lstnew(ft_strdup(str)));
-                        ft_lstadd_back(&n_str, ft_lstnew(vars[j]));
-                        while (*(str + i + 1) != '\0' && *(str + i + 1) != ' ' && *(str + i + 1) != '$')
-                                i++;
-                        str = (str + i + 1);
-                        i = -1;
-                        j++;
-                }
-                i++;
-        }
-        new_str = ft_strdup("");
-        if (str != NULL)
-                ft_lstadd_back(&n_str, ft_lstnew(str));
-        cursor = n_str;
-        while (cursor != NULL)
-        {
-                if ((*cursor).content != NULL)
-                {
-                        tmp = new_str;
-                        new_str = ft_strjoin(new_str, (char *)(*cursor).content);
-                        free(tmp);
-                }
-                cursor = (*cursor).next;
-        }
-        return (new_str);
-}
-
-t_quote_str	*ft_parse_vars(t_quote_str *quoted_str)
-{
-	t_quote_str	*q_str;
-	char		*str;
-
-	q_str = quoted_str;
-	str = (*q_str).str;
-	if ((*q_str).quoted != 1 && ft_strchr((*q_str).str, '$'))
-		(*q_str).str = var_to_str((*q_str).str);
-	return (q_str);
-}
-
-t_list	*get_pipeline(t_list *lst)
-{
-	t_quote_str	*q_str;
-	t_list		*pipeline;
-	t_list		*cursor;
-	char			*tmp;
-	char			*tmpp;
-	char			*backup;
-
-	cursor = lst;
-	pipeline = NULL;
-	tmp = ft_strdup("");
-	while (cursor != NULL)
+	i = 0;
+	path = ft_split(getenv("PATH"), ':');
+	abs_path = ft_strdup(cmd);
+	while (path[i] != NULL)
 	{
-		q_str = ft_parse_vars((*cursor).content);
-		if ((*q_str).quoted == 0 && ft_strchr((*q_str).str, '|'))
-		{
-			backup = ft_strchr((*q_str).str, '|');
-			*backup = '\0';	
-			tmp = replace_content(tmp, (*q_str).str);
-			ft_lstadd_back(&pipeline, ft_lstnew(tmp));
-			tmp = (*q_str).str; 
-			(*q_str).str = ft_strdup(backup + 1);
-			free(tmp);
-			tmp = ft_strdup("");
-		}
-		else
-		{
-			tmp = replace_content(tmp, (*q_str).str);
-			free((*(t_quote_str *)(*cursor).content).str);
-			cursor = (*cursor).next;
-		}
+		if (access(abs_path, X_OK) == 0)
+			return (abs_path);
+		free(abs_path);
+		tmp = ft_strjoin(path[i], "/");
+		abs_path = ft_strjoin(tmp, cmd);
+		free(tmp);
+		i++;
 	}
-	ft_lstadd_back(&pipeline, ft_lstnew(tmp));
-	return (pipeline);
+	free(abs_path);
+	return (cmd);
 }
 
-int	main(int argc, char **argv)
+int	exec_cmd(char **argv, char **envp)
+{
+	pid_t	pid;
+	int		wstatus;
+
+	pid = fork();
+	if (pid < 0)
+		return (-1);
+	else if (pid == 0)
+	{
+		argv[0] = set_exec(argv[0]);
+		execve(argv[0], argv, envp);
+		perror("execve");
+		exit(EXIT_FAILURE);
+	}
+	else
+	{
+		waitpid(-1, &wstatus, 0);
+		return (WEXITSTATUS(wstatus));
+	}
+}
+
+void	read_file(int fd, int fd_out)
+{
+	char	buf;
+
+	while (read(fd, &buf, 1) > 0)
+		ft_putchar_fd(buf, fd_out);
+}
+
+t_list	*get_cmds(char *str)
 {
 	t_list	*lst;
 	t_list	*pipeline;
 	t_list	*cursor;
+	char		*tmp;
 
-	lst = NULL;
-	if (argc != 2)
-		return (1);
-	lst = remove_quotes(argv[1]);	
+	lst = remove_quotes(str);	
 	pipeline = get_pipeline(lst);
 	cursor = pipeline;
 	while (cursor != NULL)
 	{
-		printf("%s\n", (char *)(*cursor).content);
+		tmp = (*cursor).content;
+		(*cursor).content = ft_split((*cursor).content, ' ');
+		free(tmp);
 		cursor = (*cursor).next;
 	}
-	ft_lstclear(&pipeline, &free);	
 	ft_lstclear(&lst, &free);
+	return (pipeline);
+}
+
+int	run(t_list *cmds, char **envp)
+{
+	pid_t	pid;
+	int		pipefd[2];
+	int		wstatus;
+	int		fd;	
+	int		tty_fd;
+
+	if (pipe(pipefd) == -1)
+	{
+		perror("pipe");
+		exit(EXIT_FAILURE);
+	}
+	pid = fork();
+	if (pid < 0)
+	{
+		perror("fork");
+		exit(EXIT_FAILURE);
+	}
+	else if (pid == 0)
+	{
+		close(pipefd[0]);
+		fd = dup(1);
+		dup2(pipefd[1], 1);
+		exec_cmd((*cmds).content, envp);
+		dup2(fd, 1);
+		close(pipefd[1]);
+		close(fd);
+		exit(EXIT_SUCCESS);
+	}
+	else
+	{
+		close(pipefd[1]);	
+		if (cmds != NULL && (*cmds).next != NULL)
+		{
+			fd = dup(0);
+			dup2(pipefd[0], 0);
+			run((*cmds).next, envp);
+			dup2(fd, 0);
+			close(fd);
+		}
+		else
+			read_file(pipefd[0], fd);
+		waitpid(-1, &wstatus, 0);
+		close(pipefd[0]);
+		return (WEXITSTATUS(wstatus));
+	}
+}
+
+int	main(int argc, char **argv, char **envp)
+{
+	t_list	*lst;
+	t_list	*cursor;
+	char		*command;
+	int		exit_status;
+	
+	lst = NULL;
+	command = readline("Minishell $> ");
+	while (command != NULL && ft_strncmp(command, "exit", 5))
+	{
+		
+		lst = get_cmds(command);
+		exit_status = run(lst, envp);
+		add_history(command);
+		free(command);
+		command = readline("Minishell $> ");
+	}
+	free(command);
 	return (0);
 }

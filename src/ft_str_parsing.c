@@ -6,7 +6,7 @@
 /*   By: souaguen <souaguen@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/13 01:29:55 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/03/15 23:53:38 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/03/19 03:20:10 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,6 +51,7 @@ void	push_back_str(t_list **lst, char **ptr, int *index, char c)
 	*(sw_tmp) = '\0';
 	ft_lstadd_back(lst, ft_lstnew(init_str(tmp, c)));
 	tmp = sw_tmp + 1;
+	*(sw_tmp) = c;
 	*index = -1;
 	*ptr = tmp;
 }
