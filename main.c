@@ -3,82 +3,96 @@
 /*                                                        :::      ::::::::   */
 /*   main.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: souaguen <souaguen@student.42.fr>          +#+  +:+       +#+        */
+/*   By: iouajjou <iouajjou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/03/13 01:24:00 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/03/19 05:37:29 by souaguen         ###   ########.fr       */
+/*   Created: 2024/03/20 10:21:30 by iouajjou          #+#    #+#             */
+/*   Updated: 2024/08/29 17:24:51 by iouajjou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "libft.h"
 #include "minishell.h"
-#include <stdio.h>
-#include <readline/readline.h>
-#include <readline/history.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include "ast.h"
 
+int	g_sig = 0;
 
-t_list	*get_cmds(char *str)
+int	ft_errors_checker(t_sys *sys)
 {
-	t_list	*lst;
-	t_list	*pipeline;
-	t_list	*cursor;
-	char		*tmp;
+	int		i;
+	int		b;
 
-	lst = remove_quotes(str);	
-	pipeline = get_pipeline(lst);
-	cursor = pipeline;
-	while (cursor != NULL)
-	{
-		tmp = (*cursor).content;
-		(*cursor).content = ft_split((*cursor).content, ' ');
-		free(tmp);
-		cursor = (*cursor).next;
-	}
-	ft_lstclear(&lst, &free);
-	return (pipeline);
+	i = 0;
+	b = 0;
+	if (!ft_isbalanced((*sys).input))
+		return (1);
+	if (!ft_check_tree((*sys).root, sys))
+		return (1);
+	if (!ft_io_syntax(sys, &i, &b))
+		return (1);
+	return (0);
 }
 
-void	read_list(t_list *lst)
+int	ft_exec_pipeline(t_sys *sys)
 {
-	t_list	*cursor;
+	t_tree	*root;
+	char	*tmp;
+	int		exit_code;
 
-	cursor = lst;
-	while (cursor != NULL)
+	exit_code = 127;
+	tmp = ft_strtrim(sys->input, " ");
+	if (*tmp == '\0')
+		return (0);
+	root = ft_tree_new(tmp);
+	ft_str_to_tree(&root);
+	(*sys).root = root;
+	if (ft_errors_checker(sys))
 	{
-		printf("%s\n", (char *)(*(t_quote_str *)(*cursor).content).str);
-		cursor = (*cursor).next;
+		(*sys).root = root;
+		free_all(sys);
+		ft_putstr_fd("Syntax Error\n", 2);
+		return (2);
 	}
+	exit_code = ft_exec_tree(root, sys);
+	free_all(sys);
+	return (exit_code);
 }
 
-int	main(int argc, char **argv, char **envp)
+char	*get_prompt(void)
 {
-	t_list	*lst;
-	t_list	*cursor;
-	char		*command;
-	int		exit_status;
-	
-	lst = NULL;
-	command = readline("Minishell $> ");
-	while (command != NULL && ft_strncmp(command, "exit", 5))
+	return ("\033[1;34mminishell$> \033[0m");
+}
+
+int	ft_minishell_routine(t_sys *sys)
+{
+	char		*prompt;
+
+	signal(SIGINT, handler_sigusr);
+	signal(SIGQUIT, SIG_IGN);
+	g_sig = 0;
+	prompt = get_prompt();
+	free(sys->input);
+	sys->input = readline(prompt);
+	if (!sys->input)
+		return (0);
+	if (sys->input[0])
 	{
-		lst = remove_quotes(command);
-		lst = get_pipeline(lst);
-		cursor = lst;
-		while (cursor != NULL)
-		{
-			printf("\n\nSTART\n\n");
-			read_list((*cursor).content);	
-			printf("\n\nEND\n\n");
-			cursor = (*cursor).next;
-		}
-		add_history(command);
-		free(command);
-		command = readline("Minishell $> ");
+		add_history(sys->input);
+		sys->pipe = 0;
+		sys->exit_code = ft_exec_pipeline(sys);
 	}
-	free(command);
+	return (1);
+}
+
+int	main(void)
+{
+	extern char	**environ;
+	t_sys		*sys;
+
+	sys = init_sys(&environ);
+	if (!sys->envp)
+		return (error("msh", ERR_BLT));
+	while (ft_minishell_routine(sys))
+		;
+	end_shell(sys);
+	printf("exit\n");
 	return (0);
 }
